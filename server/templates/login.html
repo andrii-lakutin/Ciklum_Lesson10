@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Login</title>
+</head>
+<body>
+
+	<h1>Login</h1>
+	<input type="text" placeholder="Your name?">
+	<button class="go">gogo chat</button>
+	<div class="bar"></div>
+
+
+	<script src="/socket.io/socket.io.js"></script>
+	<script type="text/javascript">
+		var login = io.connect('http://localhost:8080/login');
+		// var socket = io();
+
+		var inp = document.querySelector('input');
+		var btn = document.querySelector('.go');
+
+		btn.addEventListener('click', function(){
+			login.emit('Can i join', inp.value);
+			login.on('yes', function(){
+				document.location.href="/chat";	
+			});
+			login.on('no', function(){
+				alert('Chat is full. Come later.');
+			});
+		});
+
+	</script>
+
+</body>
+</html>

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Chat</title>
+
+	<style>
+		*{
+			text-decoration: none;
+			list-style: none;
+		}
+		body{
+			display: flex;
+			flex-wrap: wrap;
+		}
+		h1{
+			width: 100px;
+			text-align: center;
+			flex: 1 1 100%;
+		}
+		.listOfUsers{
+			min-height: 100%;
+			flex: 1 1 10%;
+			background: #212121;
+			color: white;
+		}
+		.log{
+			flex: 1 1 90%;
+		}
+		.log ul {
+			display: flex;
+			flex-wrap: wrap;
+			flex-direction: column;
+		}
+		input{
+			flex: 1 1 90%;
+			height: 50px;
+		}
+		button{
+			flex: 1 1 5%;
+			height: 56px;
+		}
+		.right{
+			align-self: flex-end;
+		}
+	</style>
+
+</head>
+<body>
+	<h1>CHAT</h1>
+	<div class="listOfUsers"></div>
+	<div class="log"></div>
+	<input type="text" placeholder="Type message here">
+	<button>Send!</button>	
+
+
+	<script src="/socket.io/socket.io.js"></script>
+	<script type="text/javascript">
+
+		var chat = io.connect('http://localhost:8080/chat');
+		var inp = document.querySelector('input');
+		var btn = document.querySelector('button');
+		//Первый вход
+		chat.on('loadUsers', function (users) {
+			var list = document.querySelector('.listOfUsers');
+			list.appendChild(makeList(users, 'users'));
+		});
+		chat.on('loadMessages', function (messages) {
+			var list = document.querySelector('.log');
+			list.appendChild(makeList(messages, 'messages'));
+		});
+		//join/disconnect
+		chat.on('userJoin', function(name){
+			addJoinedUser(name);
+		});
+
+		chat.on('userDisconnect', function(name){
+			removeDisconnectedUser(name);
+		});
+
+		//messages
+		btn.addEventListener('click', function(){
+			chat.emit('createNewMessage', inp.value);
+			inp.value = '';
+		});
+		chat.on('newMessage', function(data){
+			renderNewMsg(data);
+		});
+
+
+		//Вспомогательные функции
+
+		function renderNewMsg(data){
+			var currentUser = document.querySelector('.users li:last-child').innerHTML;
+			var ul = document.querySelector('.messages');
+			var item = document.createElement('li');
+			if (data.sid.split('').splice(6).join('') === chat.id) {
+				item.classList.add('right');
+				item.appendChild(document.createTextNode(data.msg.split(':')[3]));
+				item.appendChild(document.createTextNode(' * '));
+				item.appendChild(document.createTextNode(data.msg.split(' ')[0]));
+			} else{
+				item.appendChild(document.createTextNode(data.msg));
+			}
+			item.classList.add(data.from.split(' ')[0]);
+			ul.appendChild(item);
+		}
+
+		function addJoinedUser(name){
+			var ul = document.querySelector('.users');
+			var item = document.createElement('li');
+			item.classList.add(name);
+			item.appendChild(document.createTextNode(name));
+			ul.appendChild(item);
+		}
+
+		function removeDisconnectedUser(name){
+			var disco = document.querySelector('.' + name);
+			disco.parentNode.removeChild(disco);
+		}
+		
+		function makeList(array, type) {
+			var list = document.createElement('ul');
+			list.classList.add(type === 'users' ? 'users' : 'messages');
+			for(var i = 0; i < array.length; i++) {
+				var item = document.createElement('li');
+				if (type ==='messages') {
+					var currentUser = document.querySelector('.users li:last-child').innerHTML;
+					if (currentUser.split(' ')[0] === array[i].split(' ')[1]) {
+						item.classList.add('right');
+						item.appendChild(document.createTextNode(array[i].split(':')[3]));
+						item.appendChild(document.createTextNode(' * '));
+						item.appendChild(document.createTextNode(array[i].split(' ')[0]));
+					} else {
+						item.appendChild(document.createTextNode(array[i]));
+					}
+				} else{
+					item.appendChild(document.createTextNode(array[i].name));
+				}
+				item.classList.add(type === 'users' ? array[i].name.split(' ')[0] : array[i].split(' ')[1]);
+				list.appendChild(item);
+			}
+			return list;
+		}
+
+	</script>
+</body>
+</html>
